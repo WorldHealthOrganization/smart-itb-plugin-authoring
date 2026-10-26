@@ -21,7 +21,7 @@
     "@monaco-editor/react": "^4.6.0",
     "@opentestbed/otb-gherkin": "^0.5.0",
     "fast-xml-parser": "^5.2.5",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.3.2",
     "jszip": "^3.10.1",
     "lucide-react": "^0.263.1",
     "monaco-editor": "^0.44.0",
