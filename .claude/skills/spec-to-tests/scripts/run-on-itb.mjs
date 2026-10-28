@@ -76,9 +76,18 @@ async function start(testCaseId) {
   const actor = env('ITB_ACTOR_KEY', true);
   const data = await call('/api/rest/tests/start', {
     headers: { ITB_API_KEY: org, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ testCase: testCaseId, system, actor, forceSequentialExecution: true }),
+    // testCase is an ARRAY. Sent as a string the Test Bed ignores the filter and
+    // starts EVERY test case of the actor, and createdSessions[0] is then the
+    // first of those rather than the one asked for — so `run` reported another
+    // case's result for every case. itb-cli issue #3.
+    body: JSON.stringify({ testCase: [testCaseId], system, actor, forceSequentialExecution: true }),
   });
-  return data.sessionId ?? data.session ?? data.createdSessions?.[0]?.session ?? null;
+  const created = data.createdSessions;
+  if (Array.isArray(created) && created.length !== 1) {
+    die(`tests/start created ${created.length} session(s) for "${testCaseId}", expected 1.\n` +
+        `  The testCase filter was not applied, so any result reported here would be another case's.`);
+  }
+  return data.sessionId ?? data.session ?? created?.[0]?.session ?? null;
 }
 
 async function status(sessionId, { withLogs = true } = {}) {
@@ -87,9 +96,15 @@ async function status(sessionId, { withLogs = true } = {}) {
   // is the whole point, and a second round trip to find it is wasted.
   const data = await call('/api/rest/tests/status', {
     headers: { ITB_API_KEY: org, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session: sessionId, withLogs }),
+    // session is an ARRAY, and the answer is { sessions: [ {...} ] }. Sent as a
+    // string the Test Bed answers { sessions: [] }, so a finished session read
+    // as UNDEFINED and the run gate could never see a verdict — which is why
+    // "UNDEFINED is not a pass" looked like an interactive-test quirk rather
+    // than a bug. itb-cli issue #4.
+    body: JSON.stringify({ session: [sessionId], withLogs }),
   });
-  return { result: data.result ?? data.status ?? 'UNDEFINED', raw: data };
+  const s = data.sessions?.find(x => x.session === sessionId) ?? data.sessions?.[0];
+  return { result: s?.result ?? data.result ?? data.status ?? 'UNDEFINED', raw: s ?? data };
 }
 
 async function poll(sessionId, timeoutMs) {
