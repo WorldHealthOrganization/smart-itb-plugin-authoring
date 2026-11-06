@@ -46,6 +46,22 @@ does not fit one, you need a dialect verb, not a creative sentence.
 
 ## Rules that keep a suite trustworthy
 
+- **Ask only for inputs the scenario uses.** `Background` executes before every
+  scenario. Keep token, patient and resource prompts in the scenarios that need
+  them; a public `/metadata` check should ask for none of those. Run a case alone
+  and inspect its actual ITB input forms, including when automation answers them.
+- **Make search assertions reject empty and unrelated results.** When a known
+  matching fixture is a prerequisite, assert matching entries exist before using
+  `all(...)`. Check resource type and the requested patient's reference. Inspect
+  `search.mode` on `Bundle.entry`, not on its `resource`; ignore explicit includes
+  without discarding entries whose optional search metadata is absent. Probe
+  empty, wrong-type, wrong-patient, mixed and missing-reference responses.
+- **Inspect the executed sequence.** Requests to a validator originate from the
+  test harness, not the SUT. Name the human lane distinctly (for example, Test
+  operator), keep arrow labels short, and retain full expressions in step details.
+  Compilation success does not establish correct runtime bindings or actor mapping.
+
+
 - **One system under test per scenario.** That is what the conformance result
   is about. Everything else is infrastructure or a service.
 - **One scenario, one claim.** If the name needs "and", it is two scenarios.

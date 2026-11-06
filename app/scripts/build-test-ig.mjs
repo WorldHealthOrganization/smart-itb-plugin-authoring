@@ -624,6 +624,15 @@ const featureFiles = featureIndex(plans);
 
 fs.mkdirSync(OUT, { recursive: true });
 copyDir(SCAFFOLD, OUT);
+// An optional look: a folder under test-ig-templates/ laid over the scaffold's local-template.
+if (cfg.template) {
+  const tpl = path.join(here, 'test-ig-templates', cfg.template);
+  if (!fs.existsSync(tpl)) throw new Error(`unknown template "${cfg.template}" (no ${tpl})`);
+  const base = path.join(OUT, 'local-template', 'package');
+  fs.rmSync(path.join(base, 'content', 'assets', 'css', 'colors.css'), { force: true });
+  copyDir(path.join(tpl, 'includes'), path.join(base, 'includes'));
+  copyDir(path.join(tpl, 'content'), path.join(base, 'content'));
+}
 fs.mkdirSync(path.join(OUT, 'input', 'fsh'), { recursive: true });
 fs.mkdirSync(path.join(OUT, 'input', 'testing', 'gherkin'), { recursive: true });
 for (const d of ['examples', 'extensions', 'images', 'images-source', 'models', 'profiles', 'resources', 'vocabulary']) fs.mkdirSync(path.join(OUT, 'input', d), { recursive: true });
