@@ -56,6 +56,22 @@ the language itself, so it is never out of date.
 
 ## 3. Rules that keep a suite trustworthy
 
+- **Ask only for inputs the scenario uses.** `Background` executes before every
+  scenario. Keep token, patient and resource prompts in the scenarios that need
+  them; a public `/metadata` check should ask for none of those. Run a case alone
+  and inspect its actual ITB input forms, including when automation answers them.
+- **Make search assertions reject empty and unrelated results.** When a known
+  matching fixture is a prerequisite, assert matching entries exist before using
+  `all(...)`. Check resource type and the requested patient's reference. Inspect
+  `search.mode` on `Bundle.entry`, not on its `resource`; ignore explicit includes
+  without discarding entries whose optional search metadata is absent. Probe
+  empty, wrong-type, wrong-patient, mixed and missing-reference responses.
+- **Inspect the executed sequence.** Requests to a validator originate from the
+  test harness, not the SUT. Name the human lane distinctly (for example, Test
+  operator), keep arrow labels short, and retain full expressions in step details.
+  Compilation success does not establish correct runtime bindings or actor mapping.
+
+
 - **Assert the status of a raw exchange.** `posts to`, `gets from` and friends
   deliberately do not check it, because for a raw exchange the status is part of
   what you are testing. A dialect verb does assert its own success, so do not
