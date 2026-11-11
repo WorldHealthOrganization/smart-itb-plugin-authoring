@@ -14,6 +14,11 @@
 //   ITB_SYSTEM_KEY    the system under test's API key — needed to run
 //   ITB_ACTOR_KEY     the actor the system plays — needed to run
 //   ITB_WAIT          seconds to wait for a verdict (default 60)
+//   ITB_IGNORE_WARNINGS  1 = deploy even when the Test Bed raises warnings
+//
+// `deploy` exits 1 unless the Test Bed says the deployment completed, and
+// prints each actor's key for ITB_ACTOR_KEY. `run` first makes sure the
+// system has a conformance statement for the actor (organisation key).
 //
 // These are ITB's own documented REST endpoints, not an OpenTestBed wrapper,
 // so this works against any ITB instance.
@@ -54,6 +59,21 @@ async function call(pathname, { headers = {}, body, method = 'POST' } = {}) {
   return data;
 }
 
+// The Test Bed answers HTTP 200 to a deployment it REFUSED: the body says
+// `completed: false` and lists why (TDL errors, or warnings when
+// ignoreWarnings is not set). Printing "deployed" for that sent the next
+// `run` after test cases that do not exist. Only `completed: true` counts.
+const reportItems = (data) => {
+  const out = [];
+  for (const k of ['errors', 'warnings', 'messages']) {
+    for (const m of [].concat(data?.[k] ?? [])) {
+      const text = typeof m === 'string' ? m : (m.description ?? m.message ?? JSON.stringify(m));
+      out.push(`  ${k.replace(/s$/, '').padEnd(8)} ${text}`);
+    }
+  }
+  return out;
+};
+
 async function deploy(zipPath) {
   if (!zipPath || !fs.existsSync(zipPath)) die(`No such zip: ${zipPath}`);
   const community = env('ITB_COMMUNITY_KEY', true);
@@ -61,13 +81,59 @@ async function deploy(zipPath) {
   const form = new FormData();
   form.append('specification', spec);
   form.append('updateSpecification', 'true');
+  // Warnings refuse a deployment unless this is set. Off by default, so a
+  // warning is seen once; ITB_IGNORE_WARNINGS=1 deploys past it.
+  if (/^(1|true|yes)$/i.test(process.env.ITB_IGNORE_WARNINGS ?? '')) form.append('ignoreWarnings', 'true');
   form.append('testSuite', new Blob([fs.readFileSync(zipPath)], { type: 'application/zip' }), path.basename(zipPath));
   const data = await call('/api/rest/testsuite/deploy', { headers: { ITB_API_KEY: community }, body: form });
+  if (data?.completed !== true) {
+    console.error(`NOT DEPLOYED: the Test Bed answered completed: ${JSON.stringify(data?.completed)}`);
+    for (const l of reportItems(data)) console.error(l);
+    if ((data?.warnings ?? []).length && !(data?.errors ?? []).length) {
+      console.error('  Only warnings: set ITB_IGNORE_WARNINGS=1 to deploy past them, once you have read them.');
+    }
+    // exitCode, not exit(): exiting while fetch's sockets are still closing
+    // aborts Node on Windows (libuv assertion in async.c).
+    process.exitCode = 1;
+    return data;
+  }
   console.log('deployed');
+  for (const l of reportItems(data)) console.log(l);
   const ids = data?.identifiers ?? data;
   if (ids?.testSuite) console.log(`  suite:      ${ids.testSuite}`);
   for (const tc of ids?.testCases ?? []) console.log(`  test case:  ${typeof tc === 'string' ? tc : tc.identifier ?? JSON.stringify(tc)}`);
+  // The actor keys `run` needs (ITB_ACTOR_KEY) come back here and nowhere
+  // else without another API call. Each is { name: <actor id in the suite>,
+  // identifier: <API key> }.
+  for (const s of [].concat(ids?.specifications ?? [])) {
+    for (const a of s?.actors ?? []) console.log(`  actor:      ${String(a.name).padEnd(20)} ITB_ACTOR_KEY=${a.identifier}`);
+  }
   return data;
+}
+
+// A system can only run a test case for an actor it has a conformance
+// statement for; without one, tests/start answers that the test case was not
+// found (506) — on a fresh specification, every time. The statement belongs
+// to the system's organisation, so the ORGANISATION key creates it (the
+// community key gets 403). Idempotent: an existing statement is fine.
+async function ensureConformance() {
+  const org = env('ITB_ORG_KEY', true);
+  const system = env('ITB_SYSTEM_KEY', true);
+  const actor = env('ITB_ACTOR_KEY', true);
+  let resp;
+  try {
+    resp = await fetch(`${BASE}/api/rest/conformance/${system}/${actor}`, { method: 'PUT', headers: { ITB_API_KEY: org } });
+  } catch (e) {
+    throw new Error(`cannot reach ${BASE} — ${e.message}. Check ITB_BASE_URL and that the instance is up.`);
+  }
+  if (resp.ok || resp.status === 409) return;
+  const text = (await resp.text()).slice(0, 300);
+  // The Test Bed answers an existing statement with 400, error_code 514.
+  if (/"error_code"\s*:\s*"514"/.test(text)) return;
+  // Not fatal: some builds refuse a duplicate with another status. If the
+  // statement really is missing, start reports it, and this line says why.
+  console.warn(`conformance statement for the system and actor: HTTP ${resp.status} ${text}`);
+  if (resp.status === 403) console.warn('  403: ITB_ORG_KEY must be the key of the organisation that owns ITB_SYSTEM_KEY.');
 }
 
 async function start(testCaseId) {
@@ -132,6 +198,7 @@ try {
   } else if (cmd === 'run') {
     if (args.length === 0) die('Usage: node run-on-itb.mjs run <testCaseId> [...]');
     const waitMs = Number(process.env.ITB_WAIT ?? 60) * 1000;
+    await ensureConformance();
     let bad = 0;
     for (const tc of args) {
       const sessionId = await start(tc);
