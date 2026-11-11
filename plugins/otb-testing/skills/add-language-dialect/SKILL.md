@@ -101,7 +101,31 @@ rely on that asymmetry.)
 
 If `baseVersion` does not match the core's `specVersion`, the **entire dialect is
 refused** at merge time with only a `console.warn`, and every one of your verbs
-vanishes. Today the core is `itb-core-en` at `2.0.0`.
+vanishes. Today the core is `itb-core-en` at `2.2.0` (2.1.0 in the published otb-gherkin 0.5.0).
+
+Two optional keys say how the dialect relates to others and when it is
+useful. Write both. They are what lets a workbench or a skill propose your
+dialect for a specification nobody has tested yet.
+
+```yaml
+requires:                    # dialects whose kinds, types or handler your verbs use
+  - { dialect: json-policy, version: "^0.1" }   # or: json-policy@^0.1
+appliesWhen:                 # a condition over the spec ids and sample documents
+  any:
+    - { specification: '32023R1542|2023/1542' }                  # regex, case-insensitive
+    - { mediaType: [application/json] }
+    - { document: { pointer: /generalProductInformation/batteryCategory, exists: true } }
+```
+
+`requires:` is how a domain dialect builds on a domain-neutral one. Dialects
+cannot inherit, but a feature can load both. When a feature tags the child
+without its parent, compilation warns, and so does `otb-gherkin dialects` when
+the parent is not in `components/`. `appliesWhen:` is evaluated by
+`otb-gherkin applies --spec <id> <sample…>`. Its conditions are
+`specification`, `mediaType`, `document` (with `exists`, `equals` or
+`matches`), and `all`/`any`/`not`. An unknown key is reported as an error,
+never as "does not apply". Both keys need otb-gherkin with core 2.2.0 or later.
+Older builds ignore them.
 
 `docker`, `healthCheck`, `actors` and `services` are optional and inert to the
 compiler — the workbench uses the first two for a health dot. In particular
@@ -154,7 +178,12 @@ hand before any `at "path"` assertion.
 the number of errors that count in a variable named `conformanceErrors`. The
 core asserts it; that is the whole contract. Also publish `validationErrors`,
 `validationWarnings`, `validationOutcome` and `validationSeverity`, because the
-core's `$validation.*` references map onto those exact names.
+core's `$validation.*` references map onto those exact names. If your service
+can say exactly which rule set it applied (a policy version and hash, a
+validator and package version), put it in `validationFingerprint`. The core
+then logs it right before the verdict. Option values from the author's
+`with:` table arrive through `"$opt.<name>"`. Keep that quoted form: it is
+what lets `| asOf | $today |` pass a bound variable.
 
 **A verb with no `text:` is silently skipped.** A typo in the key (`txet:`)
 produces no verb and no error.
