@@ -100,7 +100,7 @@ Then get the skills — they are what makes the agent follow a procedure instead
 of improvising. Start the agent and install the plugin **in the session**:
 
 ```
-/plugin marketplace add OpenTestBed/itb-plugin-authoring
+/plugin marketplace add WorldHealthOrganization/smart-itb-plugin-authoring
 /plugin install otb-testing@otb-testing-toolkit
 ```
 
@@ -519,7 +519,7 @@ claude
 ```
 
 ```
-/plugin marketplace add OpenTestBed/itb-plugin-authoring
+/plugin marketplace add WorldHealthOrganization/smart-itb-plugin-authoring
 /plugin install otb-testing@otb-testing-toolkit
 ```
 
@@ -678,7 +678,7 @@ are illustrative. **PCF is your exercise, not a result.**
 
 | | |
 |---|---|
-| Front door, skills, `EXTENDING.md` | `github.com/OpenTestBed/itb-plugin-authoring` |
+| Front door, skills, `EXTENDING.md` | `github.com/WorldHealthOrganization/smart-itb-plugin-authoring` |
 | Compiler + CLI | `npm i @opentestbed/otb-gherkin` |
 | OAuth 2.1 dialect | `github.com/OpenTestBed/itb-plugin-oauth` |
 | JWT dialect | `github.com/OpenTestBed/itb-plugin-jwt` |

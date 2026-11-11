@@ -7,7 +7,7 @@ guide with TestPlan resources.
 ## Install
 
 ```
-/plugin marketplace add OpenTestBed/itb-plugin-authoring
+/plugin marketplace add WorldHealthOrganization/smart-itb-plugin-authoring
 /plugin install otb-testing@otb-testing-toolkit
 ```
 

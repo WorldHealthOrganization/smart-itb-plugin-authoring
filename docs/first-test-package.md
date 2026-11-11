@@ -40,7 +40,7 @@ later and separate job.
 Four lines, and nothing to configure:
 
 ```bash
-git clone https://github.com/OpenTestBed/itb-plugin-authoring
+git clone https://github.com/WorldHealthOrganization/smart-itb-plugin-authoring
 cd itb-plugin-authoring
 npm install @opentestbed/otb-gherkin @opentestbed/dialect-fhir-validator
 claude
@@ -248,7 +248,7 @@ project of your own without cloning this one. They are also published as a
 plugin:
 
 ```
-/plugin marketplace add OpenTestBed/itb-plugin-authoring
+/plugin marketplace add WorldHealthOrganization/smart-itb-plugin-authoring
 /plugin install otb-testing@otb-testing-toolkit
 ```
 

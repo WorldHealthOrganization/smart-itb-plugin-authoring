@@ -18,7 +18,7 @@ Clone this repository. That gives you the skills, the written procedures an agen
 follows.
 
 ```bash
-git clone https://github.com/OpenTestBed/itb-plugin-authoring
+git clone https://github.com/WorldHealthOrganization/smart-itb-plugin-authoring
 cd itb-plugin-authoring
 ```
 
@@ -93,7 +93,7 @@ service, or changing the core grammar. You do not need them to write tests; see
 They are packaged as a plugin, so you do not copy directories:
 
 ```
-/plugin marketplace add OpenTestBed/itb-plugin-authoring
+/plugin marketplace add WorldHealthOrganization/smart-itb-plugin-authoring
 /plugin install otb-testing@otb-testing-toolkit
 ```
 
