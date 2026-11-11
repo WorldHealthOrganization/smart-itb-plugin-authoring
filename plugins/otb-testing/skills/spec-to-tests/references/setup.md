@@ -98,11 +98,21 @@ them from the environment:
 | `ITB_SYSTEM_KEY` | run | the system under test |
 | `ITB_ACTOR_KEY` | run | the actor that system plays |
 | `ITB_WAIT` | run | seconds to wait for a verdict, default 60 |
+| `ITB_IGNORE_WARNINGS` | deploy | `1` deploys even when the Test Bed raises warnings |
 
-The system, the actor and the conformance statement linking them must already
-exist in ITB. Creating them is a one-off administrative step in the ITB UI, or
-through its REST API. If `run` reports no session id, that link is usually what
-is missing.
+`deploy` exits 1 unless the Test Bed answers `completed: true`. The Test Bed
+answers HTTP 200 to a deployment it refused, so the status code proves
+nothing. Warnings also refuse a deployment. Read them, then set
+`ITB_IGNORE_WARNINGS=1` if they are harmless. On success, `deploy` prints each
+actor's key as `ITB_ACTOR_KEY=…`.
+
+The system must already exist in ITB. Creating it is a one-off administrative
+step in the ITB UI or through its REST API. Before starting sessions, `run`
+creates the conformance statement linking the system to the actor. It does
+this with the organisation key, because the community key gets 403. Without
+the statement, a fresh specification answers "test case not found". If `run`
+still reports no session id, check that `ITB_ORG_KEY` belongs to the
+organisation that owns `ITB_SYSTEM_KEY`.
 
 These are ITB's own documented endpoints — `/api/rest/testsuite/deploy`,
 `/api/rest/tests/start`, `/api/rest/tests/status` — so this works against any

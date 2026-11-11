@@ -601,3 +601,62 @@ verbs:
           handler: 'ExpressionValidator'
           desc: '$$1 matches one of the patterns'
           inputs: { expression: '$anyMatch = "true"' }
+
+  # ==================================================================
+  # DELEGATING THE WHOLE TEST TO THE HL7 RUNNER
+  # ==================================================================
+
+  # The verbs above build the request and judge the answer here, through
+  # /itb/matchetype. That comparator is NOT the one the upstream tests were
+  # written against: they are authored for TxTester, which scrubs the response
+  # (issue.diagnostics, meta, unmanaged extensions) and then compares with
+  # CompareUtilities, whose placeholder vocabulary is larger —
+  #
+  #   $count-arrays$ $date$ $id$ $instant$ $only$ $optional$
+  #   $optional-properties$ $semver$ $string$ $token$ $url$ $uuid$ $version$
+  #
+  # Measured 2026-10-25 against tx.fhir.org: the upstream capstmt.json uses
+  # $url$, $token$, $string$, $date$, $semver$ and $version$, none of which
+  # /itb/matchetype knows, so it compares the literal "$url$" against a real
+  # URL and the test fails although the server is correct.
+  #
+  # This verb hands the whole test to the runner instead — the validator's
+  # /txTest endpoint is TxTester itself, so the request is built, sent, scrubbed
+  # and compared exactly as upstream does it. Correct by construction, and it
+  # tracks upstream without us reimplementing anything.
+  #
+  # THE TRADE, and it is why the verbs above still exist: this is one opaque
+  # step. A failure says which test failed, not which field of which response.
+  # Prefer the step-by-step verbs while their comparison is adequate, and reach
+  # for this one when the expected file uses placeholders /itb/matchetype does
+  # not understand, or when agreement with the HL7 runner is the point.
+  - text: '{actor} runs the upstream tx test {string} of suite {string} against {actor}( on {actor:fhir-validator})?'
+    doc: Run one test of the HL7 terminology-ecosystem suite through the validator's TxTester, which builds the request and judges the answer the way the upstream runner does.
+    actions:
+      - assign: { to: 'txRunHeaders{Accept}', value: '"application/json"' }
+      - send:
+          id: 'txRunRequest'
+          desc: 'TxTester: $3/$2 against $4.raw'
+          handler: 'HttpMessagingV2'
+          from: '$1'
+          to: '$target'
+          inputs:
+            uri: 'concat($targetBase, "/txTest?suite=$3&test=$2&server=", $$4Base)'
+            method: '"GET"'
+            headers: '$txRunHeaders'
+      - verify:
+          handler: 'NumberValidator'
+          desc: 'The runner answered (HTTP 200)'
+          inputs: { actualnumber: '$txRunRequest{response}{status}', expectednumber: '"200"' }
+      # The runner answers with an OperationOutcome: information on a pass,
+      # error on a failure. Asserting "not an error" rather than a specific
+      # success severity, so a future change of wording does not read as a pass.
+      - process:
+          handler: 'JsonPointerProcessor'
+          operation: 'process'
+          output: 'txRunSeverity'
+          inputs: { content: '$txRunRequest{response}{body}', pointer: '"/issue/0/severity"' }
+      - verify:
+          handler: 'ExpressionValidator'
+          desc: 'tx test $3/$2 passed'
+          inputs: { expression: 'not($txRunSeverity = "error") and not($txRunSeverity = "fatal")' }

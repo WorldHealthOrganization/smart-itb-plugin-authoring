@@ -201,12 +201,25 @@ function testPlanFsh(plan) {
   const shape = plan.multi
     ? "Each `suite` below is one suite of the test set, carried by the feature file its `suite.input.file` names, and each `suite.test` one of that file's `Scenario:` lines. The assertions are the scenario's `Then` steps, verbatim."
     : "Each `suite` below is a `Rule:` of the Gherkin feature named by `suite.input.file`, and each `suite.test` one of its `Scenario:` lines, matched by the scenario's identifier. The assertions are the scenario's `Then` steps, verbatim.";
+  // A reader of this page has no other way to reach the script: the publisher
+  // does not list TestPlan or Binary in artifacts.html (both are additional
+  // resources, so it has no renderer to group them under), and
+  // `suite.input.file` renders as plain text. Without this line the page
+  // explains that each test is a Scenario of a feature and then offers no way
+  // to see that feature.
+  // Binary ids are the feature basename without the extension — the same rule
+  // featureIndex() uses, so the two cannot disagree.
+  const scripts = (plan.files ?? [])
+    .map(f => path.basename(f))
+    .map(file => `[${file}](Binary-${file.replace(/\.feature$/, '')}-gherkin-script.html)`)
+    .join(', ');
   const desc = [
     plan.intro ?? `Test plan for the **${plan.title}** actor of [${cfg.spec.title}](${cfg.spec.site}).`,
     '',
     plan.description,
     '',
     shape,
+    scripts ? `The script itself is rendered at ${scripts}, and ships in the package under \`tests/gherkin/\`.` : '',
     plan.multi ? `${plan.scenarioCount} test cases across ${plan.suites.length} suites.` : '',
     plan.coversCount ? `The tests declare which specification obligations they cover (${plan.coversCount} element obligations across the plan); the coverage matrix is checked mechanically against the specification package.` : '',
     plan.note ?? '',

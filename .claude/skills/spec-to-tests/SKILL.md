@@ -1,6 +1,6 @@
 ---
 name: spec-to-tests
-description: Turn a specification into executable conformance tests — set the scope from its profiles or its actors, agree with the user which kinds of test to write, author them in Gherkin, prove they compile, and run them against a live Interoperability Test Bed. Use when someone brings a spec, an implementation guide, a profile or a capability statement and wants tests for it, including when they ask for a FHIR Test Package from a specification that publishes no FHIR package of its own.
+description: Turn a specification into executable conformance tests — set the scope from its profiles or its actors, agree with the user which kinds of test to write, author them in Gherkin, prove they compile, and run them against a live Interoperability Test Bed. Use when someone brings a spec, an implementation guide, a profile, a capability statement, a regulation or a data model — in healthcare or any other domain — and wants tests for it, including when they ask for a FHIR Test Package from a specification that publishes no FHIR package of its own.
 ---
 
 # From a specification to running tests
@@ -53,9 +53,35 @@ document it validates, this is not the skill.**
 
 ## Stage 1 — Take the spec and set the scope
 
-Ask for the specification, then read it. Not the website: the package, the
-profiles, the capability statements, the examples. What you are looking for is
-what the spec says a system must **do** and must **produce**.
+Ask for the specification, then read it. Not the website: the normative text
+itself. What that is depends on the domain:
+
+- **A FHIR IG:** the package, the profiles, the capability statements, the
+  examples.
+- **A regulation or a standard** (an EU regulation and its annexes, an ISO or
+  CEN text): the articles and annexes, the data model it points to, and
+  whichever delegated or implementing acts are adopted.
+- **An API or data specification:** its schemas, its OpenAPI document, its
+  examples.
+
+What you are looking for is the same in every domain: what the spec says a
+system must **do** and must **produce**. Cite it the way the domain does
+(profile and element; article, paragraph and annex point; schema path), so
+every test can name the rule it checks.
+
+If a source you need cannot be read (a paywalled standard, a portal behind a
+login), say so and leave that part out of scope. Never fill it from memory. A
+rule that depends on an act or version not yet adopted is a stated
+"not applicable until …", never a guess.
+
+The language is not tied to healthcare. The core sentences (actors, HTTP
+exchanges, JSON pointers, comparators, `should conform to`) work on any JSON
+or XML interface. A domain needs its own dialect only when its sentences
+should name domain things, such as access levels or a document type, or when
+conformance is checked by a domain-specific service. `otb-gherkin applies
+--spec <id> <sample>` lists the dialects whose `appliesWhen` matches, if your
+otb-gherkin has that command. If none does, try the core first, and reach for
+`add-language-dialect` when the core sentences get awkward.
 
 Then fix the scope with the user. There are two shapes, and they lead to
 different suites:
@@ -67,13 +93,16 @@ is "a Creator must…, a Consumer must…".
 
 **Profile-scoped.** The spec constrains resources and the question is whether
 an instance conforms. The suite is about documents or messages rather than
-about a system's behaviour. Choose this when the spec is mostly profiles.
+about a system's behaviour. Choose this when the spec is mostly profiles,
+or for a regulation, when it is mostly data points that a document must carry.
 
 Most specs have both. Ask which one the user cares about now, and say what the
 other would cover, so the omission is deliberate rather than accidental.
 
 Write the scope down before writing any test: which actor or which profile,
-which version of the spec, and what is explicitly out of scope. Everything
+which version of the spec (for a legal text, the act and the date of the
+consolidated version you read, and the amendments you applied by hand), and
+what is explicitly out of scope. Everything
 after this stage is judged against that sentence.
 
 ## Stage 2 — Agree which kinds of test to write

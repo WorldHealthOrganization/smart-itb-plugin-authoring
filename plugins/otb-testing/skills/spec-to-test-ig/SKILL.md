@@ -52,6 +52,10 @@ record (step 7) as you go; the record is part of the deliverable.
 | Process record | `app/public/features/<SPEC>-TESTS.md` |
 | The IG package | `<igRoot>/<spec>-test/` with `dist/package.tgz` — `igRoot` comes from step 6, never from a guess |
 
+Before handing any of it over, `scripts/check-test-ig.mjs` must pass: every plan
+names a script, every script has scenarios, and **every assertion is a step of
+that script**. Neither SUSHI nor the IG Publisher checks this.
+
 ## 1. Check the specification
 
 Download the published package (`<site>/package.tgz`) and read, from the
@@ -227,6 +231,51 @@ render the Gherkin, the pages, and the vendored scaffold
 (`app/scripts/test-ig-scaffold/`: `_package.py`, template, CI). `--package`
 runs SUSHI and produces `dist/package.tgz`. Commit the IG folder as its own
 repository.
+
+### Then check that the plans are backed by the scripts — always
+
+```
+node scripts/check-test-ig.mjs <ig folder>
+```
+
+**Run this on every build. Exit non-zero means do not ship.** SUSHI and the IG
+Publisher both pass a Test Package whose plans declare tests nothing implements,
+because neither reads the Gherkin. Three ways that happens:
+
+| What it catches | Why it matters |
+|---|---|
+| A suite naming no script, or naming one that is not in the package | The plan reads fine and implements nothing |
+| A script present but with no `Scenario:` | The plan declares tests the script does not contain |
+| **An assertion that is not a step of the script** | Looks like a test, nothing executes it — the plan reads as *more* thorough than the suite is |
+
+The third is the reason this exists. The other two you would eventually notice;
+a drifted assertion you would not. The check accepts two legitimate shapes: a
+step verbatim, and a data-table row written `"<row> — <step>"`, where **both**
+halves must be present — accepting the row alone would let a row drift away from
+its step and still pass.
+
+A passing line reads `54 test(s), 108/108 assertion(s) found in the script`. If
+the two numbers differ, every unmatched assertion is listed.
+
+### And look at the rendered Gherkin, not the redirect
+
+An IG with `langs:` writes `output/<lang>/…` and leaves a small redirect stub at
+`output/…`. The stub is ~580 bytes and contains the words "Redirect File", so
+checking the top-level `Binary-*.html` makes a perfectly good page look empty.
+**Open `output/en/Binary-<id>-gherkin-script.html`** — a real one is tens of
+kilobytes and contains the `Feature:` and every `Scenario:`.
+
+Known gap, worth stating when handing over: **`artifacts.html` lists nothing** —
+not the Binaries and not the TestPlans either. Both are additional resources, so
+the publisher has no renderer to group them under. The IG resource itself
+declares all of them correctly with names, so this is publisher behaviour and
+not something the config can fix.
+
+The builder works around it by linking from the pages it does control: the
+index page lists each script, and each TestPlan's description now ends with a
+link to its Binary. Without that the TestPlan page explains that every test is a
+`Scenario:` of a feature and then gives the reader no way to see the feature,
+since `suite.input.file` renders as plain text.
 
 ## 7. Keep the record
 
