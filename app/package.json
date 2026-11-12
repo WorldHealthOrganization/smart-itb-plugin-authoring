@@ -20,7 +20,7 @@
     "@headlessui/react": "^1.7.17",
     "@monaco-editor/react": "^4.6.0",
     "@opentestbed/otb-gherkin": "^0.5.0",
-    "fast-xml-parser": "^5.2.5",
+    "fast-xml-parser": "^5.12.0",
     "js-yaml": "^4.1.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.263.1",
